@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Spotifree</title>
+
+    <!-- PWA / Mobile App Mode -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Spotifree">
+    <meta name="theme-color" content="#121212">
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="./logo.png">
+    <link rel="icon" type="image/png" href="./logo.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --spotify-green: #1db954;
+            --spotify-green-hover: #1ed760;
+            --dark-bg: #121212;
+            --panel-bg: #181818;
+            --panel-hover: #282828;
+            --text-base: #b3b3b3;
+            --text-highlight: #ffffff;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-base);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+        
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 15s linear infinite;
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Context Menu */
+        #context-menu {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            background-color: #282828;
+            border-radius: 4px;
+            box-shadow: 0 16px 24px rgba(0,0,0,.3), 0 6px 8px rgba(0,0,0,.2);
+            padding: 4px;
+            min-width: 160px;
+        }
+        #context-menu.active {
+            display: block;
+        }
+        .context-menu-item {
+            padding: 12px 16px;
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background-color 0.2s;
+        }
+        .context-menu-item:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        /* Mobile safe area padding for footer */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="h-[100dvh] flex flex-col bg-black text-white font-sans overflow-hidden">
+
+    <div class="flex-1 flex overflow-hidden relative z-10">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 transform -translate-x-full md:translate-x-0 md:static flex flex-col bg-black transition-transform duration-300">
+            <div class="p-6 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fab fa-spotify text-3xl text-[var(--spotify-green)]"></i>
+                    <span class="text-xl font-bold text-white tracking-tight">Spotifree</span>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-2 px-2">
+                <ul class="space-y-1 mb-6">
+                    <li>
+                        <a href="#" onclick="showHome()" class="flex items-center gap-4 px-4 py-3 rounded-md hover:text-white transition-colors group">
+                            <i class="fas fa-home text-xl w-6 text-center"></i>
+                            <span class="font-bold text-sm">Accueil</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showLibrary()" class="flex items-center gap-4 px-4 py-3 rounded-md hover:text-white transition-colors group">
+                            <i class="fas fa-search text-xl w-6 text-center"></i>
+                            <span class="font-bold text-sm">Rechercher</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showLibrary()" class="flex items-center gap-4 px-4 py-3 rounded-md hover:text-white transition-colors group">
+                            <i class="fas fa-book text-xl w-6 text-center"></i>
+                            <span class="font-bold text-sm">Bibliothèque</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="space-y-1 mb-6">
+                    <li>
+                        <a href="#" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors group">
+                            <div class="w-6 h-6 bg-gray-300 text-black flex items-center justify-center rounded-sm">
+                                <i class="fas fa-plus text-xs"></i>
+                            </div>
+                            <span class="font-bold text-sm">Créer une playlist</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showLikedSongs()" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors group">
+                            <div class="w-6 h-6 bg-gradient-to-br from-indigo-600 to-blue-300 text-white flex items-center justify-center rounded-sm">
+                                <i class="fas fa-heart text-xs"></i>
+                            </div>
+                            <span class="font-bold text-sm">Titres likés</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="border-t border-gray-800 pt-4 mt-2">
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="#" onclick="filterByProject('All')" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors text-sm">
+                                <span>Tout (GitHub)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="filterByProject('Édits')" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors text-sm">
+                                <span>Édits</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="filterByArtist('Timal')" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors text-sm">
+                                <span>Timal</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="filterByArtist('Bushi')" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors text-sm">
+                                <span>Bushi</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="filterByArtist('So La Lune')" class="flex items-center gap-4 px-4 py-2 rounded-md hover:text-white transition-colors text-sm">
+                                <span>So La Lune</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto relative scroll-smooth bg-gradient-to-b from-[#2a2a2a] to-[var(--dark-bg)]" id="main-scroll">
+            <!-- Header -->
+            <header class="sticky top-0 z-20 px-4 md:px-6 py-4 flex items-center justify-between bg-black/30 backdrop-blur-md">
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleSidebar()" class="md:hidden w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-colors">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <button class="hidden md:flex w-8 h-8 rounded-full bg-black/50 items-center justify-center text-white hover:bg-black/80 transition-colors">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="hidden md:flex w-8 h-8 rounded-full bg-black/50 items-center justify-center text-white hover:bg-black/80 transition-colors">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="text-sm font-bold text-white hover:scale-105 transition-transform bg-black/50 px-4 py-1.5 rounded-full border border-gray-500 hover:border-white hidden md:block">Explorer Premium</button>
+                    <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors cursor-pointer bg-[#282828]">
+                        <img src="./logo.png" alt="Profile" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <div class="p-4 md:p-6 space-y-6 pb-32">
+                
+                <!-- Playlist Header -->
+                <section id="playlist-header" class="flex flex-col md:flex-row items-end gap-6 pt-4 pb-6">
+                    <div class="w-48 h-48 md:w-56 md:h-56 shadow-[0_4px_60px_rgba(0,0,0,0.5)] shrink-0">
+                        <img id="header-image" src="./edit.png" alt="Playlist Cover" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/edit/500'">
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-2" id="header-subtitle">Playlist</h4>
+                        <h1 class="text-4xl md:text-7xl font-bold text-white mb-4 tracking-tighter" id="header-title">ÉDIT</h1>
+                        <p class="text-sm text-gray-300 flex items-center gap-2 mt-2">
+                            <img src="./logo.png" class="w-6 h-6 rounded-full" alt="Spotifree">
+                            <span class="font-bold text-white hover:underline cursor-pointer">Spotifree</span>
+                            <span>•</span>
+                            <span id="track-count">0 titres</span>
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Action Bar -->
+                <div class="flex items-center gap-6 py-4">
+                    <button class="w-14 h-14 rounded-full bg-[var(--spotify-green)] text-black flex items-center justify-center hover:bg-[var(--spotify-green-hover)] hover:scale-105 transition-all" onclick="playAll()">
+                        <i class="fas fa-play text-xl ml-1"></i>
+                    </button>
+                    <button class="text-3xl text-gray-400 hover:text-white transition-colors" onclick="downloadPlaylist()">
+                        <i class="far fa-arrow-alt-circle-down"></i>
+                    </button>
+                    <button id="refresh-btn" class="hidden text-3xl text-gray-400 hover:text-white transition-colors" onclick="fetchAllFromGitHub()" title="Actualiser depuis GitHub">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <!-- Track List Header -->
+                <div class="grid grid-cols-[1fr_auto] gap-4 px-4 py-2 border-b border-gray-800 text-sm text-gray-400 mb-2">
+                    <div>Titre</div>
+                    <div class="w-12 text-center"><i class="far fa-clock"></i></div>
+                </div>
+
+                <!-- Track List -->
+                <div class="flex flex-col" id="track-list">
+                    <!-- Tracks injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="hidden fixed z-50 bg-[#282828] text-white rounded shadow-lg py-1 text-sm w-48 border border-gray-700">
+        <div class="px-4 py-2 hover:bg-[#3E3E3E] cursor-pointer transition-colors" onclick="addToPersonalAlbum()">Ajouter dans album perso</div>
+    </div>
+
+    <!-- Player Footer -->
+    <footer class="bg-[#181818] border-t border-[#282828] z-30 relative pb-safe">
+        <div class="flex flex-col md:flex-row h-auto md:h-20 px-2 md:px-4">
+            
+            <!-- Track Info -->
+            <div class="w-full md:w-1/3 flex items-center gap-3 p-2 md:p-0">
+                <div class="w-14 h-14 shrink-0 relative group">
+                    <img id="current-art" src="https://picsum.photos/seed/music/100" class="w-full h-full object-cover rounded" alt="Cover">
+                    <button class="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 flex items-center justify-center hover:scale-110 transition-all"><i class="fas fa-chevron-up text-xs"></i></button>
+                </div>
+                <div class="flex-1 min-w-0 flex flex-col justify-center">
+                    <div class="marquee-container w-full">
+                        <div class="marquee-content">
+                            <span id="current-title" class="text-sm font-bold text-white hover:underline cursor-pointer mr-8">Select a Track</span>
+                            <span class="text-sm font-bold text-white mr-8" aria-hidden="true">Select a Track</span>
+                        </div>
+                    </div>
+                    <p id="current-artist" class="text-xs text-[#b3b3b3] hover:underline cursor-pointer hover:text-white truncate">Spotifree</p>
+                </div>
+                <button class="text-[#b3b3b3] hover:text-white px-2"><i class="far fa-heart"></i></button>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex-1 flex flex-col justify-center items-center py-2 md:py-0 max-w-2xl mx-auto w-full">
+                <div class="flex items-center justify-center gap-4 md:gap-6 mb-1">
+                    <button class="text-[#b3b3b3] hover:text-white transition-colors text-sm"><i class="fas fa-random"></i></button>
+                    <button class="text-[#b3b3b3] hover:text-white transition-colors text-lg" id="prev-btn"><i class="fas fa-step-backward"></i></button>
+                    
+                    <button id="play-pause-btn" class="w-8 h-8 bg-white text-black flex items-center justify-center rounded-full hover:scale-105 transition-transform">
+                        <i class="fas fa-play text-sm ml-0.5"></i>
+                    </button>
+
+                    <button class="text-[#b3b3b3] hover:text-white transition-colors text-lg" id="next-btn"><i class="fas fa-step-forward"></i></button>
+                    <button class="text-[#b3b3b3] hover:text-white transition-colors text-sm"><i class="fas fa-redo"></i></button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full flex items-center gap-2 text-xs text-[#b3b3b3]">
+                    <span id="time-current">0:00</span>
+                    <div class="h-1 flex-1 bg-[#4d4d4d] rounded-full cursor-pointer group relative" id="progress-container">
+                        <div class="h-full bg-white group-hover:bg-[var(--spotify-green)] rounded-full w-0 relative transition-colors" id="progress-bar">
+                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-md"></div>
+                        </div>
+                    </div>
+                    <span id="time-total">0:00</span>
+                </div>
+            </div>
+
+            <!-- Volume -->
+            <div class="hidden md:flex w-1/3 items-center justify-end gap-3">
+                <button class="text-[#b3b3b3] hover:text-white"><i class="fas fa-microphone-alt text-sm"></i></button>
+                <button class="text-[#b3b3b3] hover:text-white"><i class="fas fa-list text-sm"></i></button>
+                <button class="text-[#b3b3b3] hover:text-white"><i class="fas fa-desktop text-sm"></i></button>
+                <div class="flex items-center gap-2 w-24">
+                    <i class="fas fa-volume-up text-[#b3b3b3] text-sm"></i>
+                    <div class="h-1 flex-1 bg-[#4d4d4d] rounded-full cursor-pointer group">
+                        <div class="w-2/3 h-full bg-white group-hover:bg-[var(--spotify-green)] rounded-full transition-colors"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        // Data
+        let allTracks = [
+            // So La Lune Tracks
+            { title: "Rodman", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Rodman.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Tsukuyomi", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Tsukuyomi.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Fissure de vie", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Fissure%20de%20vie.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Kébra", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20K%C3%A9bra.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Au bord de la falaise", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Au%20bord%20de%20la%20falaise.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Triste époque", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Triste%20%C3%A9poque.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Fin", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Fin.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Sorcier", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Sorcier.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Eternelle", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Eternelle.mp3", cover: "./so.png", project: "So La Lune" },
+            { title: "Balade", artist: "So La Lune", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/So%20La%20Lune%20-%20Balade.mp3", cover: "./so.png", project: "So La Lune" },
+
+            // Bushi Tracks
+            { title: "2 Saisons", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/BUSHI%20-%202%20Saisons.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Batman", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/BUSHI%20-%20Batman.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Pocket", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/BUSHI%20-%20Pocket.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "6 OClock", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%206%20OClock.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Link Up", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%20Link%20Up.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Mistral", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%20Mistral.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Obito", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%20Obito.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Parachute", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%20Parachute.mp3", cover: "./bushi.png", project: "Bushi" },
+            { title: "Qatari", artist: "Bushi", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Bushi%20-%20Qatari.mp3", cover: "./bushi.png", project: "Bushi" },
+
+            // Timal Tracks
+            { title: "Arrivant", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Arrivant%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Cartel feat. Meryl", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Cartel%20feat.%20Meryl%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Cavaler", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Cavaler%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Copilote", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Copilote%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Dans la ville", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Dans%20la%20ville%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "La 8 (Chivas)", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20La%208%20(Chivas)%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Maria", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20Maria%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "RR Phantom", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20-%20RR%20Phantom%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "10 ans d'âge", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%20x%20Leto%20x%20Gradur%20-%2010%20ans%20da%CC%82ge%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+            { title: "Filtré", artist: "Timal", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Timal%2C%20Gazo%20-%20Filtre%CC%81%20(Clip%20Officiel).mp3", cover: "./timal.png", project: "Timal" },
+
+            // Édits / Others
+            { title: "BABEL (Emre Kabak Remix)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/BABEL%20(%20Emre%20Kabak%20Remix)%20%7C%20CAR%20VIDEO.mp3", cover: "./edit.png", project: "Édits" },
+            { title: "Dark Angel (Super Slowed)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Dark%20angel%20(super%20slowed)-2.mp3", cover: "./edit.png", project: "Édits" },
+            { title: "FUNK UNIVERSO (Slowed)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/FUNK%20UNIVERSO%20(Slowed).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "From the Shadows (Super Slowed)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/From%20the%20Shadows%20(Super%20Slowed).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "No Man No Cry (Live)", artist: "Jimmy Sax", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Jimmy%20Sax%20-%20No%20Man%20No%20Cry%20%20(live).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "AVANGARD (Slowed + Reverb)", artist: "LONOWN", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/LONOWN%20-%20AVANGARD%20(Slowed%20%2B%20Reverb).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "Manasha (Over Slowed)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/Manasha%20(Over%20Slowed).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "Vois Sur Ton Chemin (Ultrafunk)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/VOIS%20SUR%20TON%20CHEMIN%20(ULTRAFUNK%20SLOWED).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "War Song (Slowed)", artist: "Édits", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/War%20Song%20%5BSlowed%20To%20Perfection%5D%20%7C%20Motivational%20Music.mp3", cover: "./edit.png", project: "Édits" },
+            { title: "28 Days Later (Slowed)", artist: "deprezz", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/deprezz%20-%2028%20Days%20Later%20(Slowed)%20(In%20The%20house%2C%20In%20a%20Heartbeat).mp3", cover: "./edit.png", project: "Édits" },
+            { title: "Vois Sur Ton Chemin", artist: "deprezz", url: "https://raw.githubusercontent.com/oscarmonteur/spotifree/main/deprezz%20-%20Vois%20Sur%20Ton%20Chemin.mp3", cover: "./edit.png", project: "Édits" }
+        ];
+
+        let currentPlaylist = [...allTracks]; // Default to all
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+        let likedSongs = JSON.parse(localStorage.getItem('likedSongs')) || [];
+
+        // DOM Elements
+        const audioPlayer = document.getElementById('audio-player');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress-container');
+        const trackList = document.getElementById('track-list');
+        const trackCount = document.getElementById('track-count');
+        const headerTitle = document.getElementById('header-title');
+        const headerSubtitle = document.getElementById('header-subtitle');
+        const headerImage = document.getElementById('header-image');
+        
+        const currentTitle = document.getElementById('current-title');
+        const currentArtist = document.getElementById('current-artist');
+        const currentArt = document.getElementById('current-art');
+        const marqueeContent = document.querySelector('.marquee-content');
+
+        // Context Menu Logic
+        let contextMenuTrack = null;
+        let longPressTimer;
+
+        function showContextMenu(e, track) {
+            e.preventDefault();
+            contextMenuTrack = track;
+            const menu = document.getElementById('context-menu');
+            
+            menu.classList.remove('hidden');
+            
+            // Position the menu
+            let x = e.clientX || (e.touches && e.touches[0].clientX);
+            let y = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            // Prevent overflow
+            const menuWidth = menu.offsetWidth;
+            const menuHeight = menu.offsetHeight;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            if (x + menuWidth > windowWidth) x = windowWidth - menuWidth - 10;
+            if (y + menuHeight > windowHeight) y = windowHeight - menuHeight - 10;
+            
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+        }
+
+        function hideContextMenu() {
+            const menu = document.getElementById('context-menu');
+            menu.classList.add('hidden');
+            contextMenuTrack = null;
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#context-menu')) {
+                hideContextMenu();
+            }
+        });
+
+        function addToPersonalAlbum() {
+            if (contextMenuTrack) {
+                // For now, we just use the likedSongs array as the personal album
+                if (!likedSongs.includes(contextMenuTrack.url)) {
+                    likedSongs.push(contextMenuTrack.url);
+                    localStorage.setItem('likedSongs', JSON.stringify(likedSongs));
+                    // Re-render if we are in the liked songs view
+                    if (headerTitle.textContent === "TITRES LIKÉS") {
+                        showLikedSongs();
+                    } else {
+                        renderTrackList(); // Re-render to update the heart icon
+                    }
+                }
+                hideContextMenu();
+                
+                // Optional: Show a small toast notification here
+                // alert('Ajouté à l\'album perso');
+            }
+        }
+
+        // Initialize
+        function init() {
+            // Default view: Home
+            showHome();
+            
+            // Event Listeners
+            playPauseBtn.addEventListener('click', togglePlay);
+            prevBtn.addEventListener('click', prevTrack);
+            nextBtn.addEventListener('click', nextTrack);
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                document.getElementById('time-total').textContent = formatTime(audioPlayer.duration);
+            });
+            audioPlayer.addEventListener('ended', nextTrack);
+            audioPlayer.addEventListener('error', () => {
+                console.error("Error loading audio:", audioPlayer.src);
+                // Optional: Show a toast here
+                // alert("Impossible de lire ce titre. Passage au suivant...");
+                setTimeout(nextTrack, 2000); // Skip to next track after 2 seconds
+            });
+            progressContainer.addEventListener('click', setProgress);
+            
+            // Setup Media Session API for Android Notifications
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.setActionHandler('play', playTrack);
+                navigator.mediaSession.setActionHandler('pause', pauseTrack);
+                navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+                navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+            }
+        }
+
+        function loadTrack(index) {
+            if (currentPlaylist.length === 0) return;
+            const track = currentPlaylist[index];
+            audioPlayer.src = track.url;
+            currentTitle.textContent = track.title;
+            currentArtist.textContent = track.artist;
+            
+            // Handle cover art error
+            const img = new Image();
+            img.src = track.cover;
+            img.onload = () => currentArt.src = track.cover;
+            img.onerror = () => currentArt.src = 'https://picsum.photos/seed/edit/100';
+            
+            // Update marquee text
+            const spans = marqueeContent.querySelectorAll('span');
+            spans.forEach(span => span.textContent = track.title);
+
+            updateActiveTrackStyle();
+            updateLikeButtonState(); // Ensure this function exists or remove call if not implemented
+            
+            // Update Media Session Metadata
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title,
+                    artist: track.artist,
+                    album: track.project || track.artist,
+                    artwork: [
+                        { src: track.cover, sizes: '96x96', type: 'image/png' },
+                        { src: track.cover, sizes: '128x128', type: 'image/png' },
+                        { src: track.cover, sizes: '192x192', type: 'image/png' },
+                        { src: track.cover, sizes: '256x256', type: 'image/png' },
+                        { src: track.cover, sizes: '384x384', type: 'image/png' },
+                        { src: track.cover, sizes: '512x512', type: 'image/png' },
+                    ]
+                });
+            }
+        }
+
+        function playTrack() {
+            audioPlayer.play().catch(e => console.log("Audio play failed:", e));
+            isPlaying = true;
+            playPauseBtn.innerHTML = '<i class="fas fa-pause text-xl"></i>';
+            currentArt.classList.remove('spin-paused');
+            currentArt.classList.add('spin-slow');
+            
+            // Update visualizer
+            document.querySelectorAll('.visualizer-bar').forEach(bar => {
+                bar.style.animationPlayState = 'running';
+            });
+        }
+
+        function pauseTrack() {
+            audioPlayer.pause();
+            isPlaying = false;
+            playPauseBtn.innerHTML = '<i class="fas fa-play text-xl ml-1"></i>';
+            currentArt.classList.add('spin-paused');
+            
+            // Pause visualizer
+            document.querySelectorAll('.visualizer-bar').forEach(bar => {
+                bar.style.animationPlayState = 'paused';
+            });
+        }
+
+        function togglePlay() {
+            if (isPlaying) pauseTrack();
+            else playTrack();
+        }
+
+        function nextTrack() {
+            currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+            loadTrack(currentTrackIndex);
+            playTrack();
+        }
+
+        function prevTrack() {
+            currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
+            loadTrack(currentTrackIndex);
+            playTrack();
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function updateProgress(e) {
+            const { duration, currentTime } = e.srcElement;
+            const progressPercent = (currentTime / duration) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+            
+            document.getElementById('time-current').textContent = formatTime(currentTime);
+            document.getElementById('time-total').textContent = formatTime(duration);
+        }
+
+        function setProgress(e) {
+            const width = this.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audioPlayer.duration;
+            audioPlayer.currentTime = (clickX / width) * duration;
+        }
+
+        function selectTrack(index) {
+            currentTrackIndex = index;
+            loadTrack(currentTrackIndex);
+            playTrack();
+        }
+
+        function updateActiveTrackStyle() {
+            const items = document.querySelectorAll('.track-item');
+            items.forEach((item, index) => {
+                if (index === currentTrackIndex) {
+                    item.classList.add('bg-[var(--spotify-highlight)]');
+                    if(item.querySelector('.track-title')) item.querySelector('.track-title').classList.add('text-[var(--spotify-green)]');
+                } else {
+                    item.classList.remove('bg-[var(--spotify-highlight)]');
+                    if(item.querySelector('.track-title')) item.querySelector('.track-title').classList.remove('text-[var(--spotify-green)]');
+                }
+            });
+        }
+
+        async function downloadTrack(url, filename) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                console.error("Download failed, falling back to direct link", e);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.target = "_blank";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }
+
+        function downloadPlaylist() {
+            // Download current playlist tracks
+            currentPlaylist.forEach((track, i) => {
+                setTimeout(() => {
+                    downloadTrack(track.url, `${track.artist} - ${track.title}.mp3`);
+                }, i * 1000); // Stagger downloads by 1s to be safe
+            });
+        }
+
+        // Update renderTrackList to use new download function and remove track numbers
+        function renderTrackList() {
+            if(trackCount) trackCount.textContent = `${currentPlaylist.length} titres`;
+            trackList.innerHTML = '';
+            
+            if (currentPlaylist.length === 0) {
+                trackList.innerHTML = `
+                    <div class="text-center p-8 text-gray-500">
+                        <i class="fas fa-music text-4xl mb-4 opacity-50"></i>
+                        <p>Aucun titre trouvé pour cet artiste.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentPlaylist.forEach((track, index) => {
+                const isLiked = likedSongs.includes(track.url);
+                const div = document.createElement('div');
+                div.className = `track-item flex items-center gap-4 p-3 border border-transparent hover:bg-[var(--spotify-highlight)] transition-all duration-300 group cursor-pointer rounded-md`;
+                
+                // Click to play
+                div.onclick = (e) => {
+                    if(e.target.closest('.action-btn')) return;
+                    selectTrack(index);
+                };
+
+                // Long press / Right click for context menu
+                div.oncontextmenu = (e) => showContextMenu(e, track);
+                
+                div.addEventListener('touchstart', (e) => {
+                    longPressTimer = setTimeout(() => {
+                        showContextMenu(e, track);
+                    }, 500); // 500ms for long press
+                }, {passive: true});
+                
+                div.addEventListener('touchend', () => {
+                    clearTimeout(longPressTimer);
+                });
+                div.addEventListener('touchmove', () => {
+                    clearTimeout(longPressTimer);
+                });
+
+                div.innerHTML = `
+                    <div class="w-10 h-10 overflow-hidden relative rounded flex-shrink-0">
+                        <img src="${track.cover}" class="w-full h-full object-cover" alt="Art" onerror="this.src='https://picsum.photos/seed/edit/100'">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="track-title text-base font-medium text-white group-hover:text-[var(--spotify-green)] transition-colors truncate">${track.title}</h3>
+                        <p class="text-sm text-gray-400 truncate">${track.artist}</p>
+                    </div>
+                    <div class="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <button class="action-btn w-8 h-8 flex items-center justify-center hover:scale-110 transition-transform ${isLiked ? 'text-[var(--spotify-green)]' : 'text-gray-400 hover:text-white'}" onclick="toggleLike('${track.url}', this)">
+                            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                        </button>
+                        <button class="action-btn w-8 h-8 flex items-center justify-center hover:scale-110 transition-transform text-gray-400 hover:text-white" onclick="downloadTrack('${track.url}', '${track.artist} - ${track.title}.mp3')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                `;
+                trackList.appendChild(div);
+            });
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            // Only close if we are on mobile (check if the class logic applies)
+            // But since we are adding the class back, it's safe to just add it.
+            // On desktop, the class might be irrelevant if we used md:translate-x-0 correctly.
+            // However, to be safe and simple:
+            sidebar.classList.add('-translate-x-full');
+        }
+
+        // Filtering Logic
+        function showHome() {
+            // Random recommendations
+            const shuffled = [...allTracks].sort(() => 0.5 - Math.random());
+            currentPlaylist = shuffled.slice(0, 10); // Show 10 random tracks
+            updateHeader("Accueil", "Recommandations aléatoires", "./logo.png");
+            renderTrackList();
+            currentTrackIndex = 0;
+            closeSidebar();
+        }
+
+        async function fetchAllFromGitHub() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            if(refreshBtn) {
+                refreshBtn.classList.add('animate-spin');
+            }
+            
+            try {
+                // Fetch the tree of the repo
+                const response = await fetch('https://api.github.com/repos/oscarmonteur/spotifree/git/trees/main?recursive=1');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                // Filter mp3 files
+                const mp3Files = data.tree.filter(file => file.path.endsWith('.mp3'));
+                
+                // Create new tracks array
+                const newTracks = mp3Files.map(file => {
+                    const filename = file.path.split('/').pop().replace('.mp3', '');
+                    // Try to guess artist and title from filename (e.g., "Artist - Title")
+                    let artist = "Inconnu";
+                    let title = filename;
+                    if (filename.includes(' - ')) {
+                        const parts = filename.split(' - ');
+                        artist = parts[0].trim();
+                        title = parts[1].trim();
+                    }
+                    
+                    return {
+                        title: title,
+                        artist: artist,
+                        url: `https://raw.githubusercontent.com/oscarmonteur/spotifree/main/${file.path.split('/').map(encodeURIComponent).join('/')}`,
+                        cover: "./logo.png", // Default cover
+                        project: "All"
+                    };
+                });
+
+                // Merge with existing tracks, avoiding duplicates by URL
+                const existingUrls = new Set(allTracks.map(t => t.url));
+                newTracks.forEach(track => {
+                    if (!existingUrls.has(track.url)) {
+                        allTracks.push(track);
+                    }
+                });
+
+                // Re-render the "All" playlist
+                currentPlaylist = [...allTracks];
+                renderTrackList();
+                
+            } catch (error) {
+                console.error("Failed to fetch from GitHub:", error);
+                alert("Erreur lors de l'actualisation des musiques. Vérifiez votre connexion.");
+            } finally {
+                if(refreshBtn) {
+                    refreshBtn.classList.remove('animate-spin');
+                }
+            }
+        }
+
+        function showLibrary() {
+            currentPlaylist = [...allTracks];
+            updateHeader("Librairie", "Tous les titres", "./edit.png");
+            renderTrackList();
+            currentTrackIndex = 0;
+            closeSidebar();
+        }
+
+        function showLikedSongs() {
+            currentPlaylist = allTracks.filter(track => likedSongs.includes(track.url));
+            updateHeader("Titres Likés", "Vos coups de cœur", "./edit.png"); // Use a heart image if available or generic
+            renderTrackList();
+            currentTrackIndex = 0;
+            closeSidebar();
+        }
+
+        function filterByProject(project) {
+            if (project === 'All') {
+                currentPlaylist = [...allTracks];
+                updateHeader("All", "Toutes les musiques", "./logo.png", true);
+            } else {
+                currentPlaylist = allTracks.filter(track => track.project === project || track.artist === project);
+                // Fallback for Édits which might be mixed
+                if (project === 'Édits') {
+                     currentPlaylist = allTracks.filter(track => track.project === 'Édits' || track.artist === 'Édits' || track.artist === 'deprezz' || track.artist === 'Jimmy Sax' || track.artist === 'LONOWN');
+                }
+                updateHeader(project, "Playlist", `./${project === 'Édits' ? 'edit' : project.toLowerCase()}.png`);
+            }
+            renderTrackList();
+            currentTrackIndex = 0;
+            closeSidebar();
+        }
+
+        function filterByArtist(artist) {
+            currentPlaylist = allTracks.filter(track => track.artist === artist || track.project === artist);
+            updateHeader(artist, "Artiste", `./${artist === 'So La Lune' ? 'so' : artist.toLowerCase()}.png`);
+            renderTrackList();
+            currentTrackIndex = 0;
+            closeSidebar();
+        }
+
+        function updateHeader(title, subtitle, image, showRefresh = false) {
+            headerTitle.textContent = title.toUpperCase();
+            headerSubtitle.textContent = subtitle;
+            headerImage.src = image;
+            headerImage.onerror = () => headerImage.src = 'https://picsum.photos/seed/music/500';
+            
+            // Handle refresh button
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                if (showRefresh) {
+                    refreshBtn.classList.remove('hidden');
+                } else {
+                    refreshBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function toggleLike(url, btn) {
+            if (likedSongs.includes(url)) {
+                likedSongs = likedSongs.filter(u => u !== url);
+                btn.innerHTML = '<i class="far fa-heart"></i>';
+                btn.classList.remove('text-[var(--neon-green)]');
+                btn.classList.add('text-gray-500');
+            } else {
+                likedSongs.push(url);
+                btn.innerHTML = '<i class="fas fa-heart"></i>';
+                btn.classList.add('text-[var(--neon-green)]');
+                btn.classList.remove('text-gray-500');
+            }
+            localStorage.setItem('likedSongs', JSON.stringify(likedSongs));
+            
+            // If currently viewing liked songs, refresh list
+            if (headerTitle.textContent === "TITRES LIKÉS") {
+                showLikedSongs();
+            }
+        }
+
+        function updateLikeButtonState() {
+            // Update the main player heart button if needed
+            // For now, we only have the list buttons
+        }
+
+        function playAll() {
+            if (currentPlaylist.length > 0) {
+                currentTrackIndex = 0;
+                loadTrack(0);
+                playTrack();
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
